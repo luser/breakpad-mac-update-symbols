@@ -22,6 +22,7 @@ mkdir breakpad
 cd breakpad
 fetch breakpad
 cd src
+touch README
 ./configure
 make $ncpu
 cd ../..
