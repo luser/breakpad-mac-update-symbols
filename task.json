@@ -1,0 +1,76 @@
+{
+    "metadata": {
+        "name": "breakpad-mac-update-symbols",
+        "description": "Scrape symbols from Apple system updates",
+        "owner": "ted@mielczarek.org",
+        "source": "https://github.com/luser/breakpad-mac-update-symbols"
+    },
+    "scopes": [
+        "queue:*",
+        "docker-worker:*",
+        "scheduler:*"
+    ],
+    "tasks": [
+        {
+            "taskId": "{task_id_0}",
+            "task": {
+                "provisionerId": "aws-provisioner-v1",
+                "workerType": "emulator-jb",
+                "created": "{task_created}",
+                "deadline": "{task_deadline}",
+                "payload": {
+                    "image": "luser/breakpad-mac-update-symbols:0.1",
+                    "command": [
+                        "/bin/sh",
+                        "run.sh"
+                    ],
+                    "env": {},
+                    "artifacts": {
+                        "public/build": {
+                            "type": "directory",
+                            "path": "/home/worker/artifacts/",
+                            "expires": "{artifacts_expires}"
+                        }
+                    },
+                    "maxRunTime": 28800
+                },
+                "metadata": {
+                    "name": "breakpad-mac-update-symbols",
+                    "description": "Scrape symbols from Apple system updates",
+                    "owner": "ted@mielczarek.org",
+                    "source": "https://github.com/luser/breakpad-mac-update-symbols"
+                }
+            }
+        },
+        {
+            "taskId": "{task_id_1}",
+            "requires":   ["{task_id_0}"],
+            "task": {
+                "provisionerId": "aws-provisioner-v1",
+                "workerType": "symbol-upload",
+                "created": "{task_created}",
+                "deadline": "{task_deadline}",
+                "scopes": [
+                    "docker-worker:image:taskclusterprivate/upload_symbols:0.0.3"
+                ],
+                "payload": {
+                    "image": "taskclusterprivate/upload_symbols:0.0.3",
+                    "command": [
+                        "/bin/bash",
+                        "bin/upload.sh"
+                    ],
+                    "env": {
+                        "ARTIFACT_TASKID": "{task_id_0}"
+                    },
+                    "maxRunTime": 7200
+                },
+                "metadata": {
+                    "name": "Upload Symbols",
+                    "description": "Upload Symbols",
+                    "owner": "ted@mielczarek.org",
+                    "source": "https://hg.mozilla.org/users/tmielczarek_mozilla.com/fetch-win32-symbols/"
+                }
+            }
+        }
+    ]
+}

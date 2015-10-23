@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# Copyright 2015 Ted Mielczarek. See the LICENSE
+# file at the top-level directory of this distribution.
 import os
 import reposadolib.reposadocommon as reposadocommon
 reposadocommon.get_main_dir = lambda: '/home/worker/venv/bin/'
