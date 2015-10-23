@@ -18,13 +18,16 @@ Created on Apr 11, 2012
 @author: mrmiller
 '''
 import argparse
+import concurrent.futures
+import errno
 import logging
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
-from DumpBreakpadSymbols import dump_breakpad_symbols
+
+from scrapesymbols.gathersymbols import process_paths
 
 def mount_dmg(dmg_extractor, path, mount_point):
     '''
@@ -66,18 +69,17 @@ def expand_pkg(pkg_path, out_path):
 
 def filter_files(function, path):
     '''
-    Returns a list of file paths matching a filter function by walking the
+    Yield file paths matching a filter function by walking the
     hierarchy rooted at path.
 
     @param function: a function taking in a filename that returns true to
         include the path
     @param path: the root path of the hierarchy to traverse
     '''
-    filtered_files = []
     for root, _dirs, files in os.walk(path):
-        paths = map(lambda filename:os.path.join(root, filename), files)
-        filtered_files.extend(filter(function, paths))
-    return filtered_files
+        for filename in files:
+            if function(filename):
+                yield os.path.join(root, filename)
 
 def find_packages(path):
     '''
@@ -89,6 +91,16 @@ def find_packages(path):
     return filter_files(lambda filename:
                             os.path.splitext(filename)[1] == '.pkg',
                         path)
+
+def find_all_packages(paths):
+    '''
+    Yield installer package files found in all of `paths`.
+
+    @param path: list of root paths to search for .pkg files
+    '''
+    for path in paths:
+        for pkg in find_packages(path):
+            yield pkg
 
 def find_payloads(path):
     '''
@@ -106,23 +118,40 @@ def extract_payload(payload_path, output_path):
 
     @param payload_path: path to an installer package's payload
     @param output_path: output path for the payload's contents
+    @return True for success, False for failure.
     '''
-    subprocess.check_call('cd {dest} && bzcat {gzip} | pax -r -k -s ":^/::"'.format(gzip=payload_path, dest=output_path), shell=True)
+    header = open(payload_path, 'rb').read(2)
+    if header == 'BZ':
+        extract = 'bzip2'
+    elif header == '\x1f\x8b':
+        extract = 'gzip'
+    else:
+        # Unsupported format
+        logging.error('Unknown payload format: 0x{0:x}{1:x}'.format(ord(header[0]), ord(header[1])))
+        return False
+    try:
+        # XXX: This sucks because if the extraction fails pax will hang with
+        # a prompt instead of just failing.
+        subprocess.check_call('cd {dest} && {extract} -dc {payload} | pax -r -k -s ":^/::"'.format(extract=extract, payload=payload_path, dest=output_path), shell=True)
+        return True
+    except subprocess.CalledProcessError:
+        return False
 
-def dump_symbols(dump_syms, root, dest):
-    '''
-    Dumps Breakpad symbols from a directory tree based at root using dump_syms.
-
-    @param dump_syms: path to the dump_syms executable
-    @param root: the root directory of the hierarchy to walk for binaries
-    @param dest: the destination directory for the Breakpad symbols
-    '''
-    dump_breakpad_symbols(dump_syms, root, dest)
 
 def shutil_error_handler(caller, path, excinfo):
     logging.error('Could not remove "{path}": {info}'.format(path=path, info=excinfo))
 
-def dump_symbols_from_payload(dump_syms, payload_path, dest):
+
+def write_symbol_file(dest, filename, contents):
+    full_path = os.path.join(dest, filename)
+    try:
+        os.makedirs(os.path.dirname(full_path))
+        open(full_path, 'wb').write(contents)
+    except os.error as e:
+        if e.errno != errno.EEXIST:
+            raise
+
+def dump_symbols_from_payload(executor, dump_syms, payload_path, dest):
     '''
     Dumps all the symbols found inside the payload of an installer package.
 
@@ -131,23 +160,28 @@ def dump_symbols_from_payload(dump_syms, payload_path, dest):
     @param dest: output path for symbols
     '''
     temp_dir = None
+    logging.info('Dumping symbols from payload: ' + payload_path)
     try:
         temp_dir = tempfile.mkdtemp()
         logging.info('Extracting payload to {path}.'.format(path=temp_dir))
-        extract_payload(payload_path, temp_dir)
+        if not extract_payload(payload_path, temp_dir):
+            logging.error('Could not extract payload: ' + payload_path)
+            return
 
         # dump the symbols for the payload contents
         system_library = os.path.join('System', 'Library')
         subdirectories = [os.path.join(system_library, 'Frameworks'), os.path.join(system_library, 'PrivateFrameworks'), os.path.join('usr', 'lib')]
         paths_to_dump = map(lambda d: os.path.join(temp_dir, d), subdirectories)
-        for path in paths_to_dump:
-            if os.path.exists(path):
-                dump_symbols(dump_syms, path, dest)
+
+        for filename, contents in process_paths(paths_to_dump, executor, dump_syms, False, platform='darwin'):
+            if filename and contents:
+                write_symbol_file(dest, filename, contents)
+
     finally:
         if temp_dir is not None:
             shutil.rmtree(temp_dir, onerror=shutil_error_handler)
 
-def dump_symbols_from_package(dump_syms, pkg, dest):
+def dump_symbols_from_package(executor, dump_syms, pkg, dest):
     '''
     Dumps all the symbols found inside an installer package.
 
@@ -156,67 +190,69 @@ def dump_symbols_from_package(dump_syms, pkg, dest):
     @param dest: output path for symbols
     '''
     temp_dir = None
+    logging.info('Dumping symbols from package: ' + pkg)
     try:
         temp_dir = tempfile.mkdtemp()
         expand_pkg(pkg, temp_dir)
 
         # check for any subpackages
-        subpackages = find_packages(temp_dir)
-        for subpackage in subpackages:
-            logging.warning('UNTESTED: Found subpackage at: ' + ',\n'.join(subpackage))
-            dump_symbols_from_package(dump_syms, subpackage, dest)
+        for subpackage in find_packages(temp_dir):
+            logging.warning('UNTESTED: Found subpackage at: ' + subpackage)
+            dump_symbols_from_package(executor, dump_syms, subpackage, dest)
 
         # dump symbols from any payloads (only expecting one) in the package
-        payloads = find_payloads(temp_dir)
-        logging.info('Found payloads at: ' + ',\n'.join(payloads))
-        for payload in payloads:
-            dump_symbols_from_payload(dump_syms, payload, dest)
+        for payload in find_payloads(temp_dir):
+            dump_symbols_from_payload(executor, dump_syms, payload, dest)
 
     finally:
         if temp_dir is not None:
             shutil.rmtree(temp_dir, onerror=shutil_error_handler)
 
+
+def read_processed_packages(tracking_file):
+    if tracking_file is None or not os.path.exists(tracking_file):
+        return set()
+
+    return set(open(tracking_file, 'rb').read().splitlines())
+
+
+def write_processed_packages(tracking_file, processed_packages):
+    if tracking_file is None:
+        return
+
+    open(tracking_file, 'wb').write('\n'.join(processed_packages))
+
+
 def main(args):
-    if not os.path.exists(args.updater):
-        logging.error('Invalid path to update disk image or package')
+    if not args.search or not all(os.path.exists(p) for p in args.search):
+        logging.error('Invalid search path')
         return
     if not os.path.exists(args.to):
         logging.error('Invalid path to destination')
         return
 
-    mount_point = None
-
-    try:
-        # if the updater path points to a dmg (as determined by its extension),
-        # mount the image and find any possible packages inside
-        if os.path.splitext(args.updater)[1] == '.dmg':
-            mount_point = tempfile.mkdtemp()
-            mount_dmg(args.dmg, args.updater, mount_point)
-            pkg_paths = find_packages(mount_point)
-        else:
-            pkg_paths = [args.updater]
-
-        logging.info('Found packages at: ' + ',\n'.join(pkg_paths))
-
-        for pkg in pkg_paths:
-            dump_symbols_from_package(args.dump_syms, pkg, args.to)
-    finally:
-        # if we mounted an image, unmount it and delete the temp mount point
-        if mount_point is not None:
-            try:
-                unmount_dmg(mount_point)
-            except:
-                pass
-            finally:
-                os.rmdir(mount_point)
+    processed_packages = read_processed_packages(args.tracking_file)
+    executor = concurrent.futures.ProcessPoolExecutor()
+    for pkg in find_all_packages(args.search):
+        if pkg not in processed_packages:
+            dump_symbols_from_package(executor, args.dump_syms, pkg, args.to)
+            processed_packages.add(pkg)
+            write_processed_packages(args.tracking_file, processed_packages)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Extracts Breakpad symbols from a Mac OS X support update.')
-    parser.add_argument('-s', '--search', default='./', type=str, help='a comma-separated list of relative paths (including their subdirectories) to search')
-    parser.add_argument('--dmg', default='dmg', type=str, help='path to the xpwn dmg extractor, if running on Linux')
-    parser.add_argument('--dump_syms', default='dump_syms', type=str, help='path to the Breakpad dump_syms executable')
-    parser.add_argument('updater', type=str, help='path to an updater dmg or a pkg')
-    parser.add_argument('to', default='./', type=str, help='destination path for the symbols')
+    parser = argparse.ArgumentParser(
+        description='Extracts Breakpad symbols from a Mac OS X support update.')
+    parser.add_argument('--dmg', default='dmg', type=str,
+                        help='path to the xpwn dmg extractor, ' +
+                        'if running on Linux')
+    parser.add_argument('--dump_syms', default='dump_syms', type=str,
+                        help='path to the Breakpad dump_syms executable')
+    parser.add_argument('--tracking-file', type=str,
+                        help='Path to a file in which to store information ' +
+                        'about already-processed packages')
+    parser.add_argument('search', nargs='+',
+                        help='Paths to search recursively for packages')
+    parser.add_argument('to', type=str, help='destination path for the symbols')
     args = parser.parse_args()
 
     logging.getLogger().setLevel(logging.DEBUG)

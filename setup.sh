@@ -3,14 +3,14 @@ set -v -e -x
 
 ncpu=-j`grep -c ^processor /proc/cpuinfo`
 
-mkdir /tmp/work
-cd /tmp/work
+WORK=`mktemp -d`
+cd $WORK
 svn checkout http://xar.googlecode.com/svn/trunk/ xar-read-only
 cd xar-read-only/xar
 ./autogen.sh --prefix=/home/worker
 make $ncpu && make install
 
-cd /tmp/work
+cd $WORK
 git clone https://github.com/planetbeing/xpwn
 mkdir xpwn-build
 cd xpwn-build
@@ -20,7 +20,7 @@ make $ncpu dmg-bin
 cp dmg/dmg /home/worker/bin
 strip /home/worker/bin/dmg
 
-cd /tmp/work
+cd $WORK
 git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 export PATH=$PATH:$PWD/depot_tools
 mkdir breakpad
@@ -34,14 +34,14 @@ make $ncpu src/tools/mac/dump_syms/dump_syms
 cp src/tools/mac/dump_syms/dump_syms /home/worker/bin
 strip /home/worker/bin/dump_syms
 
-cd /tmp/work
+cd $WORK
 virtualenv /home/worker/venv
 . /home/worker/venv/bin/activate
-git clone https://github.com/wdas/reposado
+git clone -b repo-sync-options https://github.com/luser/reposado.git # https://github.com/wdas/reposado
 cd reposado
 python setup.py install
 
-cd /tmp/work
+cd $WORK
 mkdir -p /opt/data-reposado/{html,metadata}
 repoutil --configure <<EOF
 /opt/data-reposado/html/
@@ -49,5 +49,10 @@ repoutil --configure <<EOF
 http://example.com/
 EOF
 
+cd $WORK
+git clone https://github.com/luser/breakpad-scrape-system-symbols.git
+cd breakpad-scrape-system-symbols
+python setup.py install
+
 cd /tmp
-rm -rf /tmp/work
+rm -rf $WORK

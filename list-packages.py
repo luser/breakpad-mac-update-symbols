@@ -1,6 +1,7 @@
 #!/usr/bin/env python
+import os
 import reposadolib.reposadocommon as reposadocommon
-reposadocommon.get_main_dir = lambda: '/usr/local/bin/'
+reposadocommon.get_main_dir = lambda: '/home/worker/venv/bin/'
 
 products = reposadocommon.getProductInfo()
 args = []
@@ -8,4 +9,7 @@ for product_id, p in products.iteritems():
   t = p['title']
   if t.startswith('OS X') or t.startswith('Mac OS X'):
     args.append('--product-id=' + product_id)
+if 'JUST_ONE_PACKAGE' in os.environ:
+  args = args[:1]
+
 print ' '.join(args)
