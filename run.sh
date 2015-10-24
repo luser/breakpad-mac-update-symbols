@@ -3,7 +3,7 @@
 
 set -v -e -x
 
-export PATH=$PATH:~/bin
+export PATH=$PATH:/home/worker/bin
 
 if test "$PROCESSED_PACKAGES"; then
   curl "$PROCESSED_PACKAGES" | gzip -dc > processed-packages

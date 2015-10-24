@@ -19,7 +19,7 @@
                 "created": "{task_created}",
                 "deadline": "{task_deadline}",
                 "payload": {
-                    "image": "luser/breakpad-mac-update-symbols:0.1",
+                    "image": "luser/breakpad-mac-update-symbols:0.2",
                     "command": [
                         "/bin/sh",
                         "run.sh"
