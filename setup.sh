@@ -5,8 +5,8 @@ ncpu=-j`grep -c ^processor /proc/cpuinfo`
 
 WORK=`mktemp -d`
 cd $WORK
-svn checkout http://xar.googlecode.com/svn/trunk/ xar-read-only
-cd xar-read-only/xar
+git clone https://github.com/mackyle/xar xar
+cd xar/xar
 ./autogen.sh --prefix=/home/worker
 make $ncpu && make install
 
