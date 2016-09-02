@@ -6,12 +6,13 @@ RUN perl -pe 'use IO::Socket::INET; chomp; $socket = new IO::Socket::INET(PeerHo
   && (echo "Acquire::http::Proxy \"http://$(cat /tmp/host_ip.txt):8000\";" > /etc/apt/apt.conf.d/30proxy) \
   && (echo "Acquire::http::Proxy::ppa.launchpad.net DIRECT;" >> /etc/apt/apt.conf.d/30proxy) \
   || echo "No squid-deb-proxy detected on docker host"
-RUN apt-get update && apt-get install -y git python curl pax gzip tar subversion autoconf build-essential libxml2-dev openssl libssl-dev make libz-dev libusb-dev cmake libbz2-dev libpng-dev wget virtualenv zip
+RUN apt-get update && apt-get install -y git python curl pax gzip tar subversion autoconf build-essential libxml2-dev openssl libssl-dev make libz-dev libusb-dev cmake libbz2-dev libpng-dev wget virtualenv zip python-setuptools python-dev
+RUN easy_install pip && pip install futures
 RUN useradd -d /home/worker -s /bin/bash -m worker
 RUN mkdir /opt/data-reposado/
 RUN mkdir /home/worker/bin/
-ADD lipo /home/worker/bin/
-RUN chmod +x /home/worker/bin/lipo
+ADD lipo parse_pbzx.py /home/worker/bin/
+RUN chmod +x /home/worker/bin/lipo /home/worker/bin/parse_pbzx.py
 RUN chown -R worker.worker /opt/data-reposado/ /home/worker/bin/
 ADD run.sh list-packages.py PackageSymbolDumper.py /home/worker/
 RUN chmod +x /home/worker/run.sh /home/worker/list-packages.py /home/worker/PackageSymbolDumper.py
