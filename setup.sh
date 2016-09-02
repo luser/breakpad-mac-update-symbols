@@ -5,8 +5,8 @@ ncpu=-j`grep -c ^processor /proc/cpuinfo`
 
 WORK=`mktemp -d`
 cd $WORK
-svn checkout http://xar.googlecode.com/svn/trunk/ xar-read-only
-cd xar-read-only/xar
+git clone https://github.com/mackyle/xar xar
+cd xar/xar
 ./autogen.sh --prefix=/home/worker
 make $ncpu && make install
 
@@ -29,10 +29,10 @@ fetch breakpad
 cd src
 touch README
 ./configure
-make $ncpu src/tools/mac/dump_syms/dump_syms
+make $ncpu src/tools/mac/dump_syms/dump_syms_mac
 # `make install` is broken because there are two dump_syms binaries.
-cp src/tools/mac/dump_syms/dump_syms /home/worker/bin
-strip /home/worker/bin/dump_syms
+cp src/tools/mac/dump_syms/dump_syms_mac /home/worker/bin
+strip /home/worker/bin/dump_syms_mac
 
 cd $WORK
 virtualenv /home/worker/venv
