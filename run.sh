@@ -22,7 +22,7 @@ repo_sync --no-download
 repo_sync `python list-packages.py`
 # Now scrape symbols out of anything that was downloaded.
 mkdir symbols artifacts || true
-python PackageSymbolDumper.py --tracking-file=/home/worker/processed-packages --dmg=/home/worker/bin/dmg --dump_syms=/home/worker/bin/dump_syms /opt/data-reposado/html/content/downloads /home/worker/symbols
+python PackageSymbolDumper.py --tracking-file=/home/worker/processed-packages --dmg=/home/worker/bin/dmg --dump_syms=/home/worker/bin/dump_syms_mac /opt/data-reposado/html/content/downloads /home/worker/symbols
 
 # Hand out artifacts
 gzip -c processed-packages > artifacts/processed-packages.gz
