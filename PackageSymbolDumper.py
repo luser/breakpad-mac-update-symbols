@@ -124,22 +124,29 @@ def extract_payload(payload_path, output_path):
     @return True for success, False for failure.
     '''
     header = open(payload_path, 'rb').read(2)
-    if header == 'BZ':
-        extract = 'bzip2'
-    elif header == '\x1f\x8b':
-        extract = 'gzip'
-    else:
-        # Unsupported format
-        logging.error('Unknown payload format: 0x{0:x}{1:x}'.format(ord(header[0]), ord(header[1])))
-        return False
     try:
-        # XXX: This sucks because if the extraction fails pax will hang with
-        # a prompt instead of just failing.
-        subprocess.check_call('cd {dest} && {extract} -dc {payload} | pax -r -k -s ":^/::"'.format(extract=extract, payload=payload_path, dest=output_path), shell=True)
-        return True
+        if header == 'BZ':
+            extract = 'bzip2'
+            subprocess.check_call('cd {dest} && {extract} -dc {payload} | pax -r -k -s ":^/::"'.format(extract=extract, payload=payload_path, dest=output_path), shell=True)
+            return True
+        elif header == '\x1f\x8b':
+            extract = 'gzip'
+            subprocess.check_call('cd {dest} && {extract} -dc {payload} | pax -r -k -s ":^/::"'.format(extract=extract, payload=payload_path, dest=output_path), shell=True)
+            return True
+        elif header == 'pb':
+            extract = 'parse_pbzx.py'
+
+            payload_dir = os.path.dirname(payload_path)
+            print 'cd {payload_dir} && {extract} {payload} && [ ! -f Payload.part01.cpio.xz ] && cd {dest} && unxz < {payload_dir}/Payload.part00.cpio.xz | pax -r -k -s ":^/::"'.format(extract=extract, payload=payload_path, payload_dir=payload_dir, dest=output_path)
+            subprocess.check_call('cd {payload_dir} && {extract} {payload} && [ ! -f Payload.part01.cpio.xz ] && cd {dest} && unxz < {payload_dir}/Payload.part00.cpio.xz | pax -r -k -s ":^/::"'.format(extract=extract, payload=payload_path, payload_dir=payload_dir, dest=output_path), shell=True)
+            return True
+        else:
+            # Unsupported format
+            logging.error('Unknown payload format: 0x{0:x}{1:x}'.format(ord(header[0]), ord(header[1])))
+            return False
+
     except subprocess.CalledProcessError:
         return False
-
 
 def shutil_error_handler(caller, path, excinfo):
     logging.error('Could not remove "{path}": {info}'.format(path=path, info=excinfo))
