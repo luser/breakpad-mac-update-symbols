@@ -1,0 +1,40 @@
+{
+    "provisionerId": "aws-provisioner-v1",
+    "workerType": "b2gtest",
+    "taskGroupId": "{task_group_id}",
+    "created": "{task_created}",
+    "deadline": "{task_deadline}",
+    "routes": [
+        "index.project.socorro.mac-update-symbols.latest"
+    ],
+    "scopes": [
+        "queue:route:index.project.socorro.mac-update-symbols.latest"
+    ],
+    "payload": {
+        "image": "luser/breakpad-mac-update-symbols:0.4",
+        "command": [
+            "/bin/sh",
+            "run.sh"
+        ],
+        "features": {
+            "relengAPIProxy": true
+        },
+        "env": {
+            "PROCESSED_PACKAGES": "https://people.mozilla.org/~tmielczarek/processed-packages.gz"
+        },
+        "artifacts": {
+            "public/build": {
+                "type": "directory",
+                "path": "/home/worker/artifacts/",
+                "expires": "{artifacts_expires}"
+            }
+        },
+        "maxRunTime": 28800
+    },
+    "metadata": {
+        "name": "breakpad-mac-update-symbols",
+        "description": "Scrape symbols from Apple system updates",
+        "owner": "ted@mielczarek.org",
+        "source": "https://github.com/luser/breakpad-mac-update-symbols/blob/master/fetch-task.json"
+    }
+}

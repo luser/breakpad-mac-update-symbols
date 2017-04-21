@@ -1,0 +1,28 @@
+{
+    "provisionerId": "aws-provisioner-v1",
+    "workerType": "symbol-upload",
+    "created": "{task_created}",
+    "deadline": "{task_deadline}",
+    "taskGroupId": "{task_group_id}",
+    "dependencies":   ["{fetch_task_id}"],
+    "scopes": [
+        "docker-worker:image:taskclusterprivate/upload_symbols:0.0.3"
+    ],
+    "payload": {
+        "image": "taskclusterprivate/upload_symbols:0.0.3",
+        "command": [
+            "/bin/bash",
+            "bin/upload.sh"
+        ],
+        "env": {
+            "ARTIFACT_TASKID": "{fetch_task_id}"
+        },
+        "maxRunTime": 7200
+    },
+    "metadata": {
+        "name": "Upload Symbols",
+        "description": "Upload Symbols",
+        "owner": "ted@mielczarek.org",
+        "source": "https://github.com/luser/breakpad-mac-update-symbols/blob/master/upload-task.json"
+    }
+}

@@ -11,3 +11,5 @@ prerequisites. You can pull a prebuilt image from
 `luser/breakpad-mac-update-symbols` on Docker Hub.
 
 This software is provided under the MIT license. See [LICENSE](LICENSE).
+
+There is a daily task scheduled to run these scripts as [a Taskcluster hook](https://tools.taskcluster.net/hooks/#project-socorro/fetch-mac-update-symbols).

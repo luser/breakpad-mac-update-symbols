@@ -1,0 +1,28 @@
+{
+    "provisionerId": "aws-provisioner-v1",
+    "workerType": "b2gtest",
+    "scopes": [
+        "queue:create-task:aws-provisioner-v1/b2gtest",
+        "queue:create-task:aws-provisioner-v1/symbol-upload",
+        "queue:route:index.project.socorro.mac-update-symbols.latest",
+        "docker-worker:image:taskclusterprivate/upload_symbols:0.0.3"
+    ],
+    "payload": {
+        "image": "luser/taskcluster-decision:0.2",
+        "features": {
+            "taskclusterProxy": true
+        },
+        "command": [
+            "/bin/bash",
+            "-c",
+            "git clone https://github.com/luser/breakpad-mac-update-symbols/ && cd breakpad-mac-update-symbols && python run-taskcluster.py"
+        ],
+        "maxRunTime": 600
+    },
+    "metadata": {
+        "name": "OS X symbol fetching decision task",
+        "description": "Decision task to be scheduled as a Taskcluster hook to run OS X symbol fetching tasks",
+        "owner": "ted@mielczarek.org",
+        "source": "https://github.com/luser/breakpad-mac-update-symbols/blob/master/hook.json"
+    }
+}

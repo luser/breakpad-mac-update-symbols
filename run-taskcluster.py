@@ -8,7 +8,6 @@ system updates and upload them to crash-stats.mozilla.com.
 
 from __future__ import print_function
 
-import argparse
 import datetime
 import json
 import os
@@ -67,40 +66,36 @@ def format_timedelta(d, **kwargs):
     return d.isoformat() + 'Z'
 
 
-def spawn_task_graph(scheduler):
-    '''
-    Spawn a Taskcluster task graph in scheduler.
-    '''
-    graph_id = taskcluster.utils.slugId()
-    keys = {}
-    for i in range(2):
-        keys['task_id_{}'.format(i)] = taskcluster.utils.slugId()
-    with open(local_file('task.json'), 'rb') as template:
-        now = datetime.datetime.utcnow()
-        keys['task_created'] = format_timedelta(now)
-        keys['task_deadline'] = format_timedelta(now, hours=5)
-        keys['artifacts_expires'] = format_timedelta(now, days=1)
+def spawn_task(queue, keys, decision_task_id, template_file):
+    task_id = taskcluster.utils.slugId()
+    with open(local_file(template_file), 'rb') as template:
         payload = fill_template(template, keys)
-    scheduler.createTaskGraph(graph_id, payload)
-    return graph_id
+        if decision_task_id and not payload.get('dependencies'):
+            payload['dependencies'] = [decision_task_id]
+        queue.createTask(task_id, payload)
+    return task_id
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Scrape and upload OS X system symbols')
-    parser.add_argument('taskcluster_auth',
-                        help='Path to a file containing Taskcluster client' +
-                        ' ID and authentication token as a JSON file in the' +
-                        ' form {"clientId": "...", "accessToken": "..."}')
-
-    args = parser.parse_args()
-    tc_auth = read_tc_auth(args.taskcluster_auth)
-    scheduler = taskcluster.Scheduler({'credentials': tc_auth})
-    graph_id = spawn_task_graph(scheduler)
-    u = 'https://tools.taskcluster.net/task-graph-inspector/#{0}/'.format(
-        graph_id
-    )
-    print(u)
+    decision_task_id = os.environ.get('TASK_ID')
+    if decision_task_id:
+        task_group_id = decision_task_id
+        options = {'baseUrl': 'http://taskcluster/queue/v1/'}
+    else:
+        task_group_id = taskcluster.utils.slugId()
+        options = {'credentials': read_tc_auth()}
+    now = datetime.datetime.utcnow()
+    keys = {
+        'task_group_id': task_group_id,
+        'task_created': format_timedelta(now),
+        'task_deadline': format_timedelta(now, hours=8),
+        'artifacts_expires': format_timedelta(now, days=1),
+    }
+    queue = taskcluster.Queue(options)
+    fetch_task_id = spawn_task(queue, keys, decision_task_id, "fetch-task.json")
+    keys['fetch_task_id'] = fetch_task_id
+    spawn_task(queue, keys, decision_task_id, "upload-task.json")
+    print('https://tools.taskcluster.net/task-group-inspector/#/' + task_group_id)
 
 
 if __name__ == '__main__':
