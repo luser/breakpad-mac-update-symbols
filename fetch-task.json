@@ -11,10 +11,10 @@
         "queue:route:index.project.socorro.mac-update-symbols.latest"
     ],
     "payload": {
-        "image": "luser/breakpad-mac-update-symbols:0.4",
+        "image": "luser/breakpad-mac-update-symbols:0.5",
         "command": [
             "/bin/sh",
-            "run.sh"
+            "start.sh"
         ],
         "env": {
             "PROCESSED_PACKAGES": "https://people-mozilla.org/~tmielczarek/processed-packages.gz"
