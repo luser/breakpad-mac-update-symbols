@@ -16,9 +16,6 @@
             "/bin/sh",
             "run.sh"
         ],
-        "features": {
-            "relengAPIProxy": true
-        },
         "env": {
             "PROCESSED_PACKAGES": "https://people.mozilla.org/~tmielczarek/processed-packages.gz"
         },
