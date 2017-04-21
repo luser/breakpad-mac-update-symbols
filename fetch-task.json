@@ -17,7 +17,7 @@
             "run.sh"
         ],
         "env": {
-            "PROCESSED_PACKAGES": "https://people.mozilla.org/~tmielczarek/processed-packages.gz"
+            "PROCESSED_PACKAGES": "https://people-mozilla.org/~tmielczarek/processed-packages.gz"
         },
         "artifacts": {
             "public/build": {
