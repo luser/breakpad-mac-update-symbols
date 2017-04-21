@@ -102,6 +102,7 @@ def find_all_packages(paths):
     @param path: list of root paths to search for .pkg files
     '''
     for path in paths:
+        logging.info('find_all_packages: {}'.format(path))
         for pkg in find_packages(path):
             yield pkg
 
@@ -222,14 +223,14 @@ def dump_symbols_from_package(executor, dump_syms, pkg, dest):
 def read_processed_packages(tracking_file):
     if tracking_file is None or not os.path.exists(tracking_file):
         return set()
-
+    logging.info('Reading processed packages from {}'.format(tracking_file))
     return set(open(tracking_file, 'rb').read().splitlines())
 
 
 def write_processed_packages(tracking_file, processed_packages):
     if tracking_file is None:
         return
-
+    logging.info('Writing {} processed packages to {}'.format(len(processed_packages), tracking_file))
     open(tracking_file, 'wb').write('\n'.join(processed_packages))
 
 
@@ -244,7 +245,9 @@ def main(args):
     processed_packages = read_processed_packages(args.tracking_file)
     executor = concurrent.futures.ProcessPoolExecutor()
     for pkg in find_all_packages(args.search):
-        if pkg not in processed_packages:
+        if pkg in processed_packages:
+            logging.info('Skipping already-processed package: {}'.format(pkg))
+        else:
             dump_symbols_from_package(executor, args.dump_syms, pkg, args.to)
             processed_packages.add(pkg)
             write_processed_packages(args.tracking_file, processed_packages)
