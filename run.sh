@@ -1,5 +1,5 @@
 #!/bin/sh
-. venv/bin/activate
+. /home/worker/venv/bin/activate
 
 set -v -e -x
 
