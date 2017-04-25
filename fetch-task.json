@@ -1,6 +1,6 @@
 {
     "provisionerId": "aws-provisioner-v1",
-    "workerType": "b2gtest",
+    "workerType": "gecko-t-linux-medium",
     "taskGroupId": "{task_group_id}",
     "created": "{task_created}",
     "deadline": "{task_deadline}",
