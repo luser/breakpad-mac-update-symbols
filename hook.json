@@ -3,6 +3,7 @@
     "workerType": "b2gtest",
     "scopes": [
         "queue:create-task:aws-provisioner-v1/b2gtest",
+        "queue:create-task:aws-provisioner-v1/gecko-t-linux-medium",
         "queue:create-task:aws-provisioner-v1/symbol-upload",
         "queue:route:index.project.socorro.mac-update-symbols.latest",
         "docker-worker:image:taskclusterprivate/upload_symbols:0.0.3"
