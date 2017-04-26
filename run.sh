@@ -19,10 +19,14 @@ if test "$PROCESSED_PACKAGES"; then
 fi
 
 mkdir -p /opt/data-reposado/html /opt/data-reposado/metadata
-# First, just fetch all the update info.
-repo_sync --no-download
-# Next, fetch just the update packages we're interested in.
-repo_sync $(python "${base}/list-packages.py")
+
+# Make sure we're using the latest reposado.
+git clone https://github.com/wdas/reposado
+(cd reposado; python setup.py install)
+
+# Download packages.
+repo_sync
+
 # Now scrape symbols out of anything that was downloaded.
 mkdir -p symbols artifacts
 python "${base}/PackageSymbolDumper.py" --tracking-file=/home/worker/processed-packages --dmg=/home/worker/bin/dmg --dump_syms=/home/worker/bin/dump_syms_mac /opt/data-reposado/html/content/downloads /home/worker/symbols
