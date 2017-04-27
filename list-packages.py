@@ -9,7 +9,8 @@ products = reposadocommon.getProductInfo()
 args = []
 for product_id, p in products.iteritems():
   t = p['title']
-  if t.startswith('OS X') or t.startswith('Mac OS X'):
+  #p['CatalogEntry']['Packages']
+  if t.startswith('OS X') or t.startswith('Mac OS X') or t.startswith('macOS'):
     args.append('--product-id=' + product_id)
 if 'JUST_ONE_PACKAGE' in os.environ:
   args = args[:1]

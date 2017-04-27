@@ -24,8 +24,14 @@ mkdir -p /opt/data-reposado/html /opt/data-reposado/metadata
 git clone https://github.com/wdas/reposado
 (cd reposado; python setup.py install)
 
-# Download packages.
-repo_sync
+# Grab a patched copy of repo_sync
+curl -L https://github.com/luser/reposado/raw/04ed48690a2c5335f8b594d78bf894dd8713ab24/code/repo_sync > /home/worker/venv/bin/repo_sync
+
+# First, just fetch all the update info.
+repo_sync --no-download
+
+# Next, fetch just the update packages we're interested in.
+repo_sync $(python "${base}/list-packages.py")
 
 # Now scrape symbols out of anything that was downloaded.
 mkdir -p symbols artifacts

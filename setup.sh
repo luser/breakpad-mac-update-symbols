@@ -34,15 +34,15 @@ make $ncpu src/tools/mac/dump_syms/dump_syms_mac
 cp src/tools/mac/dump_syms/dump_syms_mac /home/worker/bin
 strip /home/worker/bin/dump_syms_mac
 
+
 cd $WORK
 virtualenv /home/worker/venv
 . /home/worker/venv/bin/activate
-git clone -b repo-sync-options https://github.com/luser/reposado.git # https://github.com/wdas/reposado
+git clone https://github.com/wdas/reposado
 cd reposado
 python setup.py install
 
-cd $WORK
-mkdir -p /opt/data-reposado/{html,metadata}
+mkdir -p /opt/data-reposado/html /opt/data-reposado/metadata
 repoutil --configure <<EOF
 /opt/data-reposado/html/
 /opt/data-reposado/metadata/
