@@ -41,4 +41,4 @@ python "${base}/PackageSymbolDumper.py" --tracking-file=/home/worker/processed-p
 gzip -c processed-packages > artifacts/processed-packages.gz
 
 cd symbols
-zip -r9 /home/worker/artifacts/target.crashreporter-symbols.zip *
+zip -r9 /home/worker/artifacts/target.crashreporter-symbols.zip * || echo "No symbols dumped"
