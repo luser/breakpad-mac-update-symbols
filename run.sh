@@ -9,7 +9,7 @@ export PATH="$PATH:/home/worker/bin:$base"
 cd /home/worker
 
 if test "$PROCESSED_PACKAGES"; then
-  curl "$PROCESSED_PACKAGES" | gzip -dc > processed-packages
+  curl -L "$PROCESSED_PACKAGES" | gzip -dc > processed-packages
   # Prevent reposado from downloading packages that have previously been
   # dumped.
   for f in `cat processed-packages`; do
