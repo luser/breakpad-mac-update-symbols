@@ -16,7 +16,7 @@
         "command": [
             "/bin/bash",
             "-c",
-            "git clone https://github.com/luser/breakpad-mac-update-symbols/ && cd breakpad-mac-update-symbols && python run-taskcluster.py"
+            "git clone --branch scrape-downloads https://github.com/luser/breakpad-mac-update-symbols/ && cd breakpad-mac-update-symbols && python run-taskcluster.py"
         ],
         "maxRunTime": 600
     },
