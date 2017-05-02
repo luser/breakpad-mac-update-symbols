@@ -15,10 +15,10 @@ git clone https://github.com/planetbeing/xpwn
 mkdir xpwn-build
 cd xpwn-build
 cmake ../xpwn/
-make $ncpu dmg-bin
+make $ncpu dmg-bin hfsplus
 # `make install` installs way too much stuff
-cp dmg/dmg /home/worker/bin
-strip /home/worker/bin/dmg
+cp dmg/dmg hfs/hfsplus /home/worker/bin
+strip /home/worker/bin/dmg /home/worker/bin/hfsplus
 
 cd $WORK
 git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
