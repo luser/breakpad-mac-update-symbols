@@ -23,6 +23,7 @@ Created on Apr 11, 2012
 import argparse
 import concurrent.futures
 import errno
+import glob
 import logging
 import os
 import shutil
@@ -127,19 +128,37 @@ def extract_payload(payload_path, output_path):
     header = open(payload_path, 'rb').read(2)
     try:
         if header == 'BZ':
+            logging.info('Extracting bzip2 payload')
             extract = 'bzip2'
             subprocess.check_call('cd {dest} && {extract} -dc {payload} | pax -r -k -s ":^/::"'.format(extract=extract, payload=payload_path, dest=output_path), shell=True)
             return True
         elif header == '\x1f\x8b':
+            logging.info('Extracting gzip payload')
             extract = 'gzip'
             subprocess.check_call('cd {dest} && {extract} -dc {payload} | pax -r -k -s ":^/::"'.format(extract=extract, payload=payload_path, dest=output_path), shell=True)
             return True
         elif header == 'pb':
+            logging.info('Extracting pbzx payload')
             extract = 'parse_pbzx.py'
 
             payload_dir = os.path.dirname(payload_path)
-            print 'cd {payload_dir} && {extract} {payload} && [ ! -f Payload.part01.cpio.xz ] && cd {dest} && unxz < {payload_dir}/Payload.part00.cpio.xz | pax -r -k -s ":^/::"'.format(extract=extract, payload=payload_path, payload_dir=payload_dir, dest=output_path)
-            subprocess.check_call('cd {payload_dir} && {extract} {payload} && [ ! -f Payload.part01.cpio.xz ] && cd {dest} && unxz < {payload_dir}/Payload.part00.cpio.xz | pax -r -k -s ":^/::"'.format(extract=extract, payload=payload_path, payload_dir=payload_dir, dest=output_path), shell=True)
+            # First, unpack the PBZX into cpio parts.
+            subprocess.check_call(['parse_pbzx.py', payload_path], cwd=payload_dir)
+            # Next, decompress any parts that are .xz, and feed them all into pax.
+            pax_proc = subprocess.Popen(['pax', '-r', '-k', '-s', ':^/::'], stdin=subprocess.PIPE, cwd=output_path)
+            for part in sorted(glob.glob(os.path.join(payload_dir, 'Payload.part*'))):
+                if part.endswith('.xz'):
+                    logging.info('Extracting xz part {}'.format(part))
+                    # This would be easier if we pulled in the lzma module...
+                    xz_proc = subprocess.Popen(['xz', '-dc', part], stdout=subprocess.PIPE, cwd=payload_dir)
+                    shutil.copyfileobj(xz_proc.stdout, pax_proc.stdin)
+                    xz_proc.wait()
+                else:
+                    logging.info('Copying plain cpio part {}'.format(part))
+                    with open(part, 'rb') as f:
+                        shutil.copyfileobj(f, pax_proc.stdin)
+            pax_proc.stdin.close()
+            pax_proc.wait()
             return True
         else:
             # Unsupported format
@@ -186,6 +205,7 @@ def dump_symbols_from_payload(executor, dump_syms, payload_path, dest):
 
         for filename, contents in process_paths(paths_to_dump, executor, dump_syms, False, platform='darwin'):
             if filename and contents:
+                logging.info('Added symbol file ' + filename)
                 write_symbol_file(dest, filename, contents)
 
     finally:
@@ -269,5 +289,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     logging.getLogger().setLevel(logging.DEBUG)
+    for p in ('requests.packages.urllib3.connectionpool', 'urllib3'):
+        urllib3_logger = logging.getLogger(p)
+        urllib3_logger.setLevel(logging.ERROR)
 
     main(args)
