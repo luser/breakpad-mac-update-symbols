@@ -8,21 +8,9 @@ export PATH="$PATH:/home/worker/bin:$base"
 
 cd /home/worker
 
-mkdir -p packages unpacked
-# Download update packages.
-python "${base}/get-update-packages.py" /home/worker/packages
-
-cd unpacked
-for x in /home/worker/packages/*.dmg; do
-    rm -f /tmp/tmp.hfs
-    dmg extract "$x" /tmp/tmp.hfs >/dev/null
-    hfsplus /tmp/tmp.hfs extractall
-done
-cd ..
-
-# Now scrape symbols out of anything that was downloaded.
 mkdir -p symbols artifacts
-python "${base}/PackageSymbolDumper.py" --dmg=/home/worker/bin/dmg --dump_syms=/home/worker/bin/dump_syms_mac /home/worker/unpacked /home/worker/symbols
+# Download and dump update packages.
+python "${base}/get_update_packages.py" --dump_syms=/home/worker/bin/dump_syms_mac /home/worker/symbols
 
 # Hand out artifacts
 cd symbols
