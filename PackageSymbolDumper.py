@@ -33,34 +33,6 @@ import tempfile
 
 from scrapesymbols.gathersymbols import process_paths
 
-def mount_dmg(dmg_extractor, path, mount_point):
-    '''
-    Mount a disk image at a given mount point.
-
-    @param path: a path to the disk image file (.dmg)
-    @param mount_point: path at which the image should be mounted
-
-    @raise subprocess.CalledProcessError if there is an error mounting
-    '''
-    if sys.platform == 'darwin':
-        subprocess.check_call(['hdiutil', 'attach', path, '-nobrowse', '-mountpoint', mount_point, '-plist'])
-    else:
-        with tempfile.NamedTemporaryFile() as f:
-            subprocess.check_call([dmg_extractor, 'extract', path, f.name])
-            subprocess.check_call(['mount', '-o', 'loop', f.name, mount_point])
-
-def unmount_dmg(mount_point):
-    '''
-    Unmount a mounted disk image given its mount point.
-
-    @param mount_point: path where the image is mounted, e.g. "/Volumes/test"
-
-    @raise subprocess.CalledProcessError if there is an error unmounting
-    '''
-    if sys.platform == 'darwin':
-        subprocess.check_call(['hdiutil', 'detach', mount_point])
-    else:
-        subprocess.check_call(['umount', mount_point])
 
 def expand_pkg(pkg_path, out_path):
     '''
@@ -254,30 +226,21 @@ def write_processed_packages(tracking_file, processed_packages):
     open(tracking_file, 'wb').write('\n'.join(processed_packages))
 
 
-def main(args):
-    if not args.search or not all(os.path.exists(p) for p in args.search):
-        logging.error('Invalid search path')
-        return
-    if not os.path.exists(args.to):
-        logging.error('Invalid path to destination')
-        return
+def process_packages(package_finder, to, tracking_file, dump_syms):
+    processed_packages = read_processed_packages(tracking_file)
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        for pkg in package_finder():
+            if pkg in processed_packages:
+                logging.info('Skipping already-processed package: {}'.format(pkg))
+            else:
+                dump_symbols_from_package(executor, dump_syms, pkg, to)
+                processed_packages.add(pkg)
+                write_processed_packages(tracking_file, processed_packages)
 
-    processed_packages = read_processed_packages(args.tracking_file)
-    executor = concurrent.futures.ProcessPoolExecutor()
-    for pkg in find_all_packages(args.search):
-        if pkg in processed_packages:
-            logging.info('Skipping already-processed package: {}'.format(pkg))
-        else:
-            dump_symbols_from_package(executor, args.dump_syms, pkg, args.to)
-            processed_packages.add(pkg)
-            write_processed_packages(args.tracking_file, processed_packages)
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(
         description='Extracts Breakpad symbols from a Mac OS X support update.')
-    parser.add_argument('--dmg', default='dmg', type=str,
-                        help='path to the xpwn dmg extractor, ' +
-                        'if running on Linux')
     parser.add_argument('--dump_syms', default='dump_syms', type=str,
                         help='path to the Breakpad dump_syms executable')
     parser.add_argument('--tracking-file', type=str,
@@ -288,9 +251,21 @@ if __name__ == '__main__':
     parser.add_argument('to', type=str, help='destination path for the symbols')
     args = parser.parse_args()
 
-    logging.getLogger().setLevel(logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     for p in ('requests.packages.urllib3.connectionpool', 'urllib3'):
         urllib3_logger = logging.getLogger(p)
         urllib3_logger.setLevel(logging.ERROR)
 
-    main(args)
+    if not args.search or not all(os.path.exists(p) for p in args.search):
+        logging.error('Invalid search path')
+        return
+    if not os.path.exists(args.to):
+        logging.error('Invalid path to destination')
+        return
+    def finder():
+        return find_all_packages(args.search)
+    process_packages(finder, args.to, args.tracking_file, args.dump_syms)
+
+
+if __name__ == '__main__':
+    main()
