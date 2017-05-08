@@ -11,7 +11,7 @@
         "queue:route:index.project.socorro.mac-update-symbols.latest"
     ],
     "payload": {
-        "image": "luser/breakpad-mac-update-symbols:0.5",
+        "image": "luser/breakpad-mac-update-symbols:0.7",
         "command": [
             "/bin/sh",
             "start.sh"
