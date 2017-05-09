@@ -90,6 +90,7 @@ def main():
         'task_created': format_timedelta(now),
         'task_deadline': format_timedelta(now, hours=8),
         'artifacts_expires': format_timedelta(now, days=180),
+        'date_index': now.strftime('%Y%m%d%H%M%S'),
     }
     queue = taskcluster.Queue(options)
     fetch_task_id = spawn_task(queue, keys, decision_task_id, "fetch-task.json")

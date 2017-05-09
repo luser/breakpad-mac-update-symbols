@@ -5,10 +5,15 @@
     "created": "{task_created}",
     "deadline": "{task_deadline}",
     "routes": [
-        "index.project.socorro.mac-update-symbols.latest"
+        "index.project.socorro.mac-update-symbols.latest",
+        "index.project.socorro.mac-update-symbols.{date_index}",
+        "notify.email.stability@mozilla.org.on-failed",
+        "notify.irc-channel.#stability.on-failed"
     ],
     "scopes": [
-        "queue:route:index.project.socorro.mac-update-symbols.latest"
+        "queue:route:index.project.socorro.mac-update-symbols.*",
+        "queue:route:notify.email.stability@mozilla.org.*",
+        "queue:route:notify.irc-channel.#stability.*"
     ],
     "payload": {
         "image": "luser/breakpad-mac-update-symbols:0.7",
