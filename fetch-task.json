@@ -4,12 +4,6 @@
     "taskGroupId": "{task_group_id}",
     "created": "{task_created}",
     "deadline": "{task_deadline}",
-    "routes": [
-        "index.project.socorro.mac-update-symbols.latest"
-    ],
-    "scopes": [
-        "queue:route:index.project.socorro.mac-update-symbols.latest"
-    ],
     "payload": {
         "image": "luser/breakpad-mac-update-symbols:0.7",
         "command": [
