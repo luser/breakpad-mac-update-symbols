@@ -25,7 +25,7 @@ git clone https://github.com/wdas/reposado
 (cd reposado; python setup.py install)
 
 # Use a patched copy of repo_sync
-cp "${base}/repo_sync" > /home/worker/venv/bin/repo_sync
+cp "${base}/repo_sync" /home/worker/venv/bin/repo_sync
 
 # First, just fetch all the update info.
 repo_sync --no-download
