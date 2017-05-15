@@ -22,7 +22,7 @@
             "start.sh"
         ],
         "env": {
-            "PROCESSED_PACKAGES": "https://people-mozilla.org/~tmielczarek/processed-packages.gz"
+            "PROCESSED_PACKAGES": "https://index.taskcluster.net/v1/task/project.socorro.mac-update-symbols.latest/artifacts/public/build/processed-packages.gz"
         },
         "artifacts": {
             "public/build": {
