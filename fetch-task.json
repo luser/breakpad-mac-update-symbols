@@ -8,11 +8,13 @@
         "index.project.socorro.mac-update-symbols.latest",
         "index.project.socorro.mac-update-symbols.{date_index}",
         "notify.email.stability@mozilla.org.on-failed",
+        "notify.email.afilip@mozilla.com.on-failed",
         "notify.irc-channel.#uptime.on-failed"
     ],
     "scopes": [
         "queue:route:index.project.socorro.mac-update-symbols.*",
         "queue:route:notify.email.stability@mozilla.org.*",
+        "queue:route:notify.email.afilip@mozilla.com.*",
         "queue:route:notify.irc-channel.#uptime.*"
     ],
     "payload": {
