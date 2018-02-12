@@ -15,7 +15,8 @@
             "bin/upload.sh"
         ],
         "env": {
-            "ARTIFACT_TASKID": "{fetch_task_id}"
+            "ARTIFACT_TASKID": "{fetch_task_id}",
+            "GECKO_HEAD_REV": "04f52fb15e76"
         },
         "maxRunTime": 7200
     },
